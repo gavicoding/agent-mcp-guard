@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "docs-reader": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-filesystem@2026.1.14", "./docs"],
+      "autoApprove": ["read_file"]
+    },
+    "internal-api": {
+      "url": "https://mcp.contoso.lab/sse",
+      "headers": {
+        "Authorization": "Bearer ${MCP_READ_TOKEN}"
+      }
+    }
+  }
+}

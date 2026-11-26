@@ -1,0 +1,16 @@
+{
+  "tools": [
+    {
+      "server": "docs-reader",
+      "name": "read_file",
+      "description": "Reads markdown documentation inside the approved ./docs directory.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {"type": "string"}
+        },
+        "required": ["path"]
+      }
+    }
+  ]
+}

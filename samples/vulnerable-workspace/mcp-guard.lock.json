@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-11-25T00:00:00Z",
+  "servers": {
+    "mcp.json#filesystem": {
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem@0.6.2", "./docs"]
+    }
+  },
+  "tools": {
+    "mcp-tools.json#filesystem::read_project_doc": {
+      "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "description_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "description_len": 29
+    }
+  }
+}
