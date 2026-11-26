@@ -29,7 +29,7 @@
     <nav class="tabs" role="tablist">
       <button id="tab-scanner" class="tab active" type="button" role="tab" aria-selected="true" data-i18n="tab_scanner">Config & Prompt Scanner</button>
       <button id="tab-rugpull" class="tab" type="button" role="tab" aria-selected="false" data-i18n="tab_rugpull">MCP Rug-Pull SHA-256 Lab</button>
-      <button id="tab-catalog" class="tab" type="button" role="tab" aria-selected="false" data-i18n="tab_catalog">20 Rules (OWASP Agentic)</button>
+      <button id="tab-catalog" class="tab" type="button" role="tab" aria-selected="false" data-i18n="tab_catalog">25 Rules (OWASP Agentic)</button>
     </nav>
 
     <main id="panel-scanner" class="panel active">
@@ -38,6 +38,7 @@
         <button class="btn btn-chip" type="button" data-preset="poisoning" data-i18n="preset_poisoning">MCP Tool Poisoning</button>
         <button class="btn btn-chip" type="button" data-preset="unicode" data-i18n="preset_unicode">Hidden Unicode & Trojan Source</button>
         <button class="btn btn-chip" type="button" data-preset="secrets" data-i18n="preset_secrets">Exposed Secrets & Unpinned npx</button>
+        <button class="btn btn-chip" type="button" data-preset="agentSettings" data-i18n="preset_settings">Agent Settings: Hooks &amp; Permissions</button>
         <button class="btn btn-chip btn-ok" type="button" data-preset="hardened" data-i18n="preset_hardened">Hardened Clean Baseline</button>
       </section>
 
@@ -121,7 +122,7 @@
     <section id="panel-catalog" class="panel" hidden>
       <div class="card">
         <div class="card-head">
-          <h2 data-i18n="catalog_heading">Detection Rule Catalog (AMG001 - AMG020)</h2>
+          <h2 data-i18n="catalog_heading">Detection Rule Catalog (AMG001 - AMG025)</h2>
         </div>
         <div class="table-wrap">
           <table class="rules-table">

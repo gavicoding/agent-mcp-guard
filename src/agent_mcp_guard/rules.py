@@ -165,6 +165,46 @@ RULES: dict[str, RuleDefinition] = {
         mitre_atlas="AML.T0057",
         cwe="CWE-200",
     ),
+    "AMG021": RuleDefinition(
+        rule_id="AMG021",
+        severity=Severity.HIGH,
+        category="auto-executed-hook",
+        owasp_agentic="ASI05: Unexpected Code Execution",
+        mitre_atlas="AML.T0050",
+        cwe="CWE-78",
+    ),
+    "AMG022": RuleDefinition(
+        rule_id="AMG022",
+        severity=Severity.MEDIUM,
+        category="overbroad-permission-allowlist",
+        owasp_agentic="ASI03: Identity and Privilege Abuse",
+        mitre_atlas="AML.T0048",
+        cwe="CWE-250",
+    ),
+    "AMG023": RuleDefinition(
+        rule_id="AMG023",
+        severity=Severity.MEDIUM,
+        category="auto-trusted-project-servers",
+        owasp_agentic="ASI04: Agentic Supply Chain Vulnerabilities",
+        mitre_atlas="AML.T0010",
+        cwe="CWE-829",
+    ),
+    "AMG024": RuleDefinition(
+        rule_id="AMG024",
+        severity=Severity.MEDIUM,
+        category="live-tool-name-collision",
+        owasp_agentic="ASI02: Tool Misuse and Exploitation",
+        mitre_atlas="AML.T0051.001",
+        cwe="CWE-694",
+    ),
+    "AMG025": RuleDefinition(
+        rule_id="AMG025",
+        severity=Severity.LOW,
+        category="live-verification-gap",
+        owasp_agentic="ASI04: Agentic Supply Chain Vulnerabilities",
+        mitre_atlas="AML.T0010.003",
+        cwe="CWE-345",
+    ),
 }
 
 

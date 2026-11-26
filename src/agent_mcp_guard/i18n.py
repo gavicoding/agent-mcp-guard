@@ -35,32 +35,32 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "generated_by": "Generated locally by agent-mcp-guard",
     },
     "pt": {
-        "report_title": "Relatorio de Auditoria agent-mcp-guard",
-        "report_subtitle": "Auditoria local sem dependencias de instrucoes de agentes IA, servidores MCP e integridade SHA-256",
+        "report_title": "Relatório de Auditoria agent-mcp-guard",
+        "report_subtitle": "Auditoria local sem dependências de instruções de agentes IA, servidores MCP e integridade SHA-256",
         "target_label": "Alvo",
         "files_scanned": "Arquivos Analisados",
         "total_findings": "Achados",
-        "risk_score": "Nivel de Risco",
-        "lockfile_status": "Verificacao de Lockfile",
+        "risk_score": "Nível de Risco",
+        "lockfile_status": "Verificação de Lockfile",
         "lockfile_verified": "Verificado",
-        "lockfile_missing": "Nao Informado",
-        "clean_status": "Limpo: nenhum problema de seguranca encontrado.",
+        "lockfile_missing": "Não Informado",
+        "clean_status": "Limpo: nenhum problema de segurança encontrado.",
         "severity": "Gravidade",
         "rule": "Regra",
-        "location": "Localizacao",
+        "location": "Localização",
         "owasp_mapping": "OWASP Agentic / CWE",
-        "evidence": "Evidencia",
+        "evidence": "Evidência",
         "remediation": "Como Corrigir",
-        "summary_heading": "Distribuicao por Gravidade",
+        "summary_heading": "Distribuição por Gravidade",
         "findings_heading": "Achados Detectados",
         "filter_all": "Todos",
-        "critical": "Critico",
+        "critical": "Crítico",
         "high": "Alto",
-        "medium": "Medio",
+        "medium": "Médio",
         "low": "Baixo",
         "lock_written": "Lockfile SHA-256 gerado com sucesso",
         "lock_ok": "Todos os servidores MCP e schemas de tools batem com o lockfile SHA-256.",
-        "lock_drift": "Alteracao silenciosa (rug pull) ou desvio de schema detectado no MCP.",
+        "lock_drift": "Alteração silenciosa (rug pull) ou desvio de schema detectado no MCP.",
         "generated_by": "Gerado localmente pelo agent-mcp-guard",
     },
 }
@@ -73,9 +73,9 @@ RULE_COPY: dict[str, dict[str, dict[str, str]]] = {
             "remediation": "Strip all non-printable control and Unicode Tag characters and inspect the raw hex diff before trusting the file.",
         },
         "pt": {
-            "title": "Caracteres invisiveis (zero-width ou Unicode Tags)",
-            "description": "Caracteres Unicode ocultos passam despercebidos na revisao humana, mas continuam sendo lidos pelo modelo de IA como parte do prompt ou descricao da tool.",
-            "remediation": "Remova todos os caracteres Unicode invisiveis ou de tag e revise o diff em bytes antes de aprovar o arquivo.",
+            "title": "Caracteres invisíveis (zero-width ou Unicode Tags)",
+            "description": "Caracteres Unicode ocultos passam despercebidos na revisão humana, mas continuam sendo lidos pelo modelo de IA como parte do prompt ou descrição da tool.",
+            "remediation": "Remova todos os caracteres Unicode invisíveis ou de tag e revise o diff em bytes antes de aprovar o arquivo.",
         },
     },
     "AMG002": {
@@ -87,7 +87,7 @@ RULE_COPY: dict[str, dict[str, dict[str, str]]] = {
         "pt": {
             "title": "Controle bidirecional oculto (Trojan Source)",
             "description": "Caracteres Bidi do Unicode invertem visualmente a ordem de leitura de regras ou trechos JSON para esconder comandos maliciosos na tela.",
-            "remediation": "Exclua todos os caracteres de controle bidirecional e bloqueie esse padrao no CI do repositorio.",
+            "remediation": "Exclua todos os caracteres de controle bidirecional e bloqueie esse padrão no CI do repositório.",
         },
     },
     "AMG003": {
@@ -97,9 +97,9 @@ RULE_COPY: dict[str, dict[str, dict[str, str]]] = {
             "remediation": "Decode and verify the payload manually; never leave opaque Base64/Hex instruction blobs inside prompt rules or tool descriptions.",
         },
         "pt": {
-            "title": "Payload ofuscado em Base64 ou Hex nas instrucoes",
-            "description": "Blocos longos codificados que decodificam comandos de shell, URLs ou ordens de sobrescrita costumam burlar revisoes manuais.",
-            "remediation": "Decodifique e valide o conteudo; nao mantenha blobs ofuscados em regras de agentes ou descricoes MCP.",
+            "title": "Payload ofuscado em Base64 ou Hex nas instruções",
+            "description": "Blocos longos codificados que decodificam comandos de shell, URLs ou ordens de sobrescrita costumam burlar revisões manuais.",
+            "remediation": "Decodifique e valide o conteúdo; não mantenha blobs ofuscados em regras de agentes ou descrições MCP.",
         },
     },
     "AMG004": {
@@ -109,9 +109,9 @@ RULE_COPY: dict[str, dict[str, dict[str, str]]] = {
             "remediation": "Remove stealth or boundary-override clauses immediately and treat external rules or MCP schemas as untrusted code inputs.",
         },
         "pt": {
-            "title": "Diretiva de prompt injection ou ocultacao de acoes",
-            "description": "O texto manda o agente ignorar regras anteriores, agir sem avisar o usuario ou usa blocos <IMPORTANT> / comentarios HTML ocultos para sequestrar o comportamento.",
-            "remediation": "Remova essas clausulas imediatamente e trate regras de terceiros e schemas MCP como entrada nao confiavel.",
+            "title": "Diretiva de prompt injection ou ocultação de ações",
+            "description": "O texto manda o agente ignorar regras anteriores, agir sem avisar o usuário ou usa blocos <IMPORTANT> / comentários HTML ocultos para sequestrar o comportamento.",
+            "remediation": "Remova essas cláusulas imediatamente e trate regras de terceiros e schemas MCP como entrada não confiável.",
         },
     },
     "AMG005": {
@@ -121,9 +121,9 @@ RULE_COPY: dict[str, dict[str, dict[str, str]]] = {
             "remediation": "Remove credential read/exfiltration instructions and isolate agent execution away from developer home secrets.",
         },
         "pt": {
-            "title": "Instrucao de leitura e exfiltracao de credenciais",
-            "description": "Combina caminhos criticos (~/.ssh, ~/.aws, .env, id_rsa) com comandos ou verbos para enviar, fazer upload ou passar o conteudo via tool.",
-            "remediation": "Elimine instrucoes que acessem cofres ou arquivos locais sensiveis e isole o ambiente do agente.",
+            "title": "Instrução de leitura e exfiltração de credenciais",
+            "description": "Combina caminhos críticos (~/.ssh, ~/.aws, .env, id_rsa) com comandos ou verbos para enviar, fazer upload ou passar o conteúdo via tool.",
+            "remediation": "Elimine instruções que acessem cofres ou arquivos locais sensíveis e isole o ambiente do agente.",
         },
     },
     "AMG006": {
@@ -134,8 +134,8 @@ RULE_COPY: dict[str, dict[str, dict[str, str]]] = {
         },
         "pt": {
             "title": "Sequestro cruzado entre tools MCP (tool shadowing)",
-            "description": "A descricao de uma tool MCP tenta interferir no uso de outra tool (por exemplo, redirecionando destinatarios, commits ou comandos).",
-            "remediation": "Desative o servidor MCP suspeito, audite todo o manifesto de tools e exija aprovacao humana.",
+            "description": "A descrição de uma tool MCP tenta interferir no uso de outra tool (por exemplo, redirecionando destinatarios, commits ou comandos).",
+            "remediation": "Desative o servidor MCP suspeito, audite todo o manifesto de tools e exija aprovação humana.",
         },
     },
     "AMG007": {
@@ -145,9 +145,9 @@ RULE_COPY: dict[str, dict[str, dict[str, str]]] = {
             "remediation": "Pin signed artifacts with checksum verification instead of piping remote scripts into a shell.",
         },
         "pt": {
-            "title": "Execucao remota direta (curl|sh, iex, powershell -enc)",
-            "description": "Baixar e executar scripts direto na linha de comando abre caminho para execucao arbitraria sem verificacao de integridade.",
-            "remediation": "Substitua por pacotes com versao travada e conferencia de hash antes da execucao.",
+            "title": "Execução remota direta (curl|sh, iex, powershell -enc)",
+            "description": "Baixar e executar scripts direto na linha de comando abre caminho para execução arbitrária sem verificação de integridade.",
+            "remediation": "Substitua por pacotes com versão travada e conferência de hash antes da execução.",
         },
     },
     "AMG008": {
@@ -157,9 +157,9 @@ RULE_COPY: dict[str, dict[str, dict[str, str]]] = {
             "remediation": "Replace wildcard approvals with an explicit allowlist of read-only tools and require confirmation for state-changing actions.",
         },
         "pt": {
-            "title": "Liberacao total de permissoes sem confirmacao humana",
-            "description": "Flags como autoApprove ['*'], alwaysAllow ['*'] ou --dangerously-skip-permissions desligam a aprovacao humana do agente.",
-            "remediation": "Troque o curinga por uma lista enxuta de tools seguras e mantenha confirmacao para acoes de escrita.",
+            "title": "Liberação total de permissões sem confirmação humana",
+            "description": "Flags como autoApprove ['*'], alwaysAllow ['*'] ou --dangerously-skip-permissions desligam a aprovação humana do agente.",
+            "remediation": "Troque o curinga por uma lista enxuta de tools seguras e mantenha confirmação para ações de escrita.",
         },
     },
     "AMG009": {
@@ -170,8 +170,8 @@ RULE_COPY: dict[str, dict[str, dict[str, str]]] = {
         },
         "pt": {
             "title": "Rug pull no MCP: hash SHA-256 diverge do lockfile",
-            "description": "O comando do servidor MCP ou a descricao/schema de uma tool mudou em relacao ao mcp-guard.lock.json apos a aprovacao inicial.",
-            "remediation": "Interrompa o uso, revise o diff do schema alterado e gere um novo lockfile apenas apos validar a mudanca.",
+            "description": "O comando do servidor MCP ou a descrição/schema de uma tool mudou em relação ao mcp-guard.lock.json após a aprovação inicial.",
+            "remediation": "Interrompa o uso, revise o diff do schema alterado e gere um novo lockfile apenas após validar a mudança.",
         },
     },
     "AMG010": {
@@ -181,9 +181,9 @@ RULE_COPY: dict[str, dict[str, dict[str, str]]] = {
             "remediation": "Pin exact versions (package@1.2.3, pkg==1.2.3, or container digest @sha256:...) in MCP server definitions.",
         },
         "pt": {
-            "title": "Pacote ou container MCP sem versao fixa (unpinned)",
-            "description": "Usar npx -y, uvx ou docker :latest sem versao travada permite que uma atualizacao externa altere o servidor MCP na proxima execucao.",
-            "remediation": "Fixe versoes exatas (pacote@1.2.3, pacote==1.2.3 ou digest @sha256) na configuracao do servidor.",
+            "title": "Pacote ou container MCP sem versão fixa (unpinned)",
+            "description": "Usar npx -y, uvx ou docker :latest sem versão travada permite que uma atualização externa altere o servidor MCP na próxima execução.",
+            "remediation": "Fixe versões exatas (pacote@1.2.3, pacote==1.2.3 ou digest @sha256) na configuração do servidor.",
         },
     },
     "AMG011": {
@@ -194,7 +194,7 @@ RULE_COPY: dict[str, dict[str, dict[str, str]]] = {
         },
         "pt": {
             "title": "Transporte HTTP sem criptografia ou bind aberto em 0.0.0.0",
-            "description": "Endpoints http:// externos deixam tokens e payloads trafegando em claro; bind em 0.0.0.0 expoe o servidor MCP para a rede local.",
+            "description": "Endpoints http:// externos deixam tokens e payloads trafegando em claro; bind em 0.0.0.0 expõe o servidor MCP para a rede local.",
             "remediation": "Exija HTTPS para endpoints remotos e restrinja servidores locais a 127.0.0.1.",
         },
     },
@@ -205,9 +205,9 @@ RULE_COPY: dict[str, dict[str, dict[str, str]]] = {
             "remediation": "Configure explicit Bearer/OAuth authentication via secret environment variable references (never literal secrets).",
         },
         "pt": {
-            "title": "Endpoint MCP remoto sem autenticacao configurada",
-            "description": "Um servidor MCP remoto em https:// foi declarado sem headers de autenticacao (Authorization/X-API-Key) nem configuracao OAuth.",
-            "remediation": "Defina autenticacao explicita via referencia a variavel de ambiente protegida.",
+            "title": "Endpoint MCP remoto sem autenticação configurada",
+            "description": "Um servidor MCP remoto em https:// foi declarado sem headers de autenticação (Authorization/X-API-Key) nem configuração OAuth.",
+            "remediation": "Defina autenticação explícita via referência a variável de ambiente protegida.",
         },
     },
     "AMG013": {
@@ -218,8 +218,8 @@ RULE_COPY: dict[str, dict[str, dict[str, str]]] = {
         },
         "pt": {
             "title": "Escopo de pastas amplo demais no servidor MCP",
-            "description": "Liberar raiz (/, C:\\), pasta do usuario (~ / $HOME) ou traversal (..) expoe chaves SSH, sessoes e arquivos fora do projeto.",
-            "remediation": "Restrinja os caminhos do servidor MCP apenas ao diretorio estrito do projeto.",
+            "description": "Liberar raiz (/, C:\\), pasta do usuário (~ / $HOME) ou traversal (..) expõe chaves SSH, sessões e arquivos fora do projeto.",
+            "remediation": "Restrinja os caminhos do servidor MCP apenas ao diretório estrito do projeto.",
         },
     },
     "AMG014": {
@@ -229,9 +229,9 @@ RULE_COPY: dict[str, dict[str, dict[str, str]]] = {
             "remediation": "Inject only minimally scoped runtime variables per server via a secret manager instead of sharing admin tokens.",
         },
         "pt": {
-            "title": "Variaveis de ambiente sensiveis expostas na config do MCP",
+            "title": "Variáveis de ambiente sensíveis expostas na config do MCP",
             "description": "Passar tokens amplos (AWS_SECRET_ACCESS_KEY, GITHUB_TOKEN, DATABASE_URL) no mcp.json aumenta o impacto em caso de comprometimento.",
-            "remediation": "Use credenciais de privilegio minimo injetadas por cofre seguro em tempo de execucao.",
+            "remediation": "Use credenciais de privilégio mínimo injetadas por cofre seguro em tempo de execução.",
         },
     },
     "AMG015": {
@@ -242,8 +242,8 @@ RULE_COPY: dict[str, dict[str, dict[str, str]]] = {
         },
         "pt": {
             "title": "Chave de API, token ou chave privada exposta em texto claro",
-            "description": "Credenciais gravadas direto em arquivos de regras ou mcp.json acabam vazando no repositorio Git e no contexto enviado ao modelo.",
-            "remediation": "Revogue e rotacione a credencial imediatamente e substitua por referencia a variavel de ambiente (${VAR}).",
+            "description": "Credenciais gravadas direto em arquivos de regras ou mcp.json acabam vazando no repositório Git e no contexto enviado ao modelo.",
+            "remediation": "Revogue e rotacione a credencial imediatamente e substitua por referência a variável de ambiente (${VAR}).",
         },
     },
     "AMG016": {
@@ -253,9 +253,9 @@ RULE_COPY: dict[str, dict[str, dict[str, str]]] = {
             "remediation": "Keep tool descriptions concise and audit any lengthy documentation before granting tool access.",
         },
         "pt": {
-            "title": "Descricao de tool MCP longa demais (> 1500 caracteres)",
-            "description": "Descricoes gigantes sao usadas para esconder instrucoes maliciosas depois da dobra de rolagem da interface.",
-            "remediation": "Mantenha descricoes objetivas e revise integralmente qualquer texto extenso antes de aprovar a tool.",
+            "title": "Descrição de tool MCP longa demais (> 1500 caracteres)",
+            "description": "Descrições gigantes são usadas para esconder instruções maliciosas depois da dobra de rolagem da interface.",
+            "remediation": "Mantenha descrições objetivas e revise integralmente qualquer texto extenso antes de aprovar a tool.",
         },
     },
     "AMG017": {
@@ -265,9 +265,9 @@ RULE_COPY: dict[str, dict[str, dict[str, str]]] = {
             "remediation": "Vendor reviewed rule files locally in git rather than pulling unpinned remote instructions dynamically.",
         },
         "pt": {
-            "title": "Carregamento dinamico de instrucoes via URL externa",
+            "title": "Carregamento dinâmico de instruções via URL externa",
             "description": "Mandar o agente buscar regras em uma URL remota permite que terceiros alterem o comportamento do agente a qualquer momento.",
-            "remediation": "Versione as regras localmente no repositorio apos revisao, sem busca dinamica em runtime.",
+            "remediation": "Versione as regras localmente no repositório após revisão, sem busca dinâmica em runtime.",
         },
     },
     "AMG018": {
@@ -277,9 +277,9 @@ RULE_COPY: dict[str, dict[str, dict[str, str]]] = {
             "remediation": "Run `agent-mcp-guard lock` after reviewing your MCP config and verify with `--lockfile mcp-guard.lock.json` in CI.",
         },
         "pt": {
-            "title": "Configuracao MCP sem lockfile SHA-256 de integridade",
-            "description": "Sem um mcp-guard.lock.json versionado, mudancas silenciosas nos servidores MCP ou schemas de tools passam sem alerta.",
-            "remediation": "Execute `agent-mcp-guard lock` apos auditar a configuracao e valide com `--lockfile` no CI.",
+            "title": "Configuração MCP sem lockfile SHA-256 de integridade",
+            "description": "Sem um mcp-guard.lock.json versionado, mudanças silenciosas nos servidores MCP ou schemas de tools passam sem alerta.",
+            "remediation": "Execute `agent-mcp-guard lock` após auditar a configuração e valide com `--lockfile` no CI.",
         },
     },
     "AMG019": {
@@ -290,8 +290,8 @@ RULE_COPY: dict[str, dict[str, dict[str, str]]] = {
         },
         "pt": {
             "title": "Metacaracteres de shell ou encadeamento em argumentos MCP",
-            "description": "Argumentos com ;, &&, ||, pipe, crase ou $() na inicializacao do servidor MCP facilitam injecao de comandos.",
-            "remediation": "Execute o binario diretamente com argumentos separados, evitando passar comandos por shell intermediario.",
+            "description": "Argumentos com ;, &&, ||, pipe, crase ou $() na inicialização do servidor MCP facilitam injeção de comandos.",
+            "remediation": "Execute o binário diretamente com argumentos separados, evitando passar comandos por shell intermediário.",
         },
     },
     "AMG020": {
@@ -301,9 +301,69 @@ RULE_COPY: dict[str, dict[str, dict[str, str]]] = {
             "remediation": "Remove untrusted external markdown image embeds and disable dynamic URL interpolation inside agent instructions.",
         },
         "pt": {
-            "title": "Vetor de exfiltracao via imagem ou link Markdown",
-            "description": "Imagens Markdown com parametros de query dinamicos podem vazar dados da sessao automaticamente quando a interface renderiza a resposta.",
-            "remediation": "Remova embeds externos nao confiaveis e bloqueie URLs com interpolacao de variaveis nas instrucoes.",
+            "title": "Vetor de exfiltração via imagem ou link Markdown",
+            "description": "Imagens Markdown com parâmetros de query dinâmicos podem vazar dados da sessão automaticamente quando a interface renderiza a resposta.",
+            "remediation": "Remova embeds externos não confiáveis e bloqueie URLs com interpolação de variáveis nas instruções.",
+        },
+    },
+    "AMG021": {
+        "en": {
+            "title": "Hook runs a risky command automatically",
+            "description": "Agent hooks execute shell commands on every session or tool call without asking. A hook that downloads code, decodes payloads, touches credential files or deletes data runs on the machine of everyone who opens the project.",
+            "remediation": "Remove the hook or replace it with a reviewed local script that does not reach the network, decode payloads or read secrets. Keep shared settings free of hooks you did not write.",
+        },
+        "pt": {
+            "title": "Hook executa comando arriscado sozinho",
+            "description": "Hooks de agentes rodam comandos no terminal a cada sessão ou chamada de ferramenta, sem perguntar. Um hook que baixa código, decodifica conteúdo, mexe em arquivos de credenciais ou apaga dados roda no computador de todo mundo que abrir o projeto.",
+            "remediation": "Remova o hook ou troque por um script local revisado, sem acesso à rede, sem decodificar conteúdo e sem ler segredos. Não deixe em configurações compartilhadas hooks que você não escreveu.",
+        },
+    },
+    "AMG022": {
+        "en": {
+            "title": "Permission allowlist is too broad",
+            "description": "Entries such as Bash(*), *, mcp__* or an interpreter wildcard let the agent run anything without confirmation, so a single injected instruction becomes code execution.",
+            "remediation": "Allow only the exact commands you need (for example Bash(npm test)) and keep confirmation for everything else.",
+        },
+        "pt": {
+            "title": "Lista de permissões ampla demais",
+            "description": "Itens como Bash(*), *, mcp__* ou um interpretador liberado deixam o agente rodar qualquer coisa sem confirmação. Uma única instrução injetada vira execução de código.",
+            "remediation": "Libere só os comandos exatos que você usa (por exemplo Bash(npm test)) e mantenha a confirmação para o resto.",
+        },
+    },
+    "AMG023": {
+        "en": {
+            "title": "Project MCP servers are trusted automatically",
+            "description": "With enableAllProjectMcpServers (or MCP autostart) any repository you clone can start its own MCP servers, which run code on your machine with your credentials.",
+            "remediation": "Turn the switch off and approve project servers one by one after reading their configuration.",
+        },
+        "pt": {
+            "title": "Servidores MCP de projeto liberados automaticamente",
+            "description": "Com enableAllProjectMcpServers (ou o início automático de MCP) qualquer repositório que você clonar pode iniciar servidores MCP próprios, que rodam código no seu computador com as suas credenciais.",
+            "remediation": "Desligue a opção e aprove os servidores de cada projeto um por um, depois de ler a configuração.",
+        },
+    },
+    "AMG024": {
+        "en": {
+            "title": "Two MCP servers expose the same tool name",
+            "description": "When servers publish tools with the same name, a malicious server can shadow a trusted one and receive calls (and data) meant for it.",
+            "remediation": "Remove the duplicate server or rename the tool, and keep only servers you trust enabled at the same time.",
+        },
+        "pt": {
+            "title": "Dois servidores MCP com ferramenta de mesmo nome",
+            "description": "Quando dois servidores publicam ferramentas com o mesmo nome, um servidor malicioso pode se passar pelo confiável e receber as chamadas (e os dados) destinadas a ele.",
+            "remediation": "Remova o servidor duplicado ou renomeie a ferramenta, e deixe ligados ao mesmo tempo só servidores em que você confia.",
+        },
+    },
+    "AMG025": {
+        "en": {
+            "title": "MCP server could not be verified live",
+            "description": "The server did not start or did not answer tools/list in time, so its real tool descriptions were not checked or pinned.",
+            "remediation": "Check the command, credentials and network, then run again with --live. Servers that need interactive sign-in can be pinned after you sign in.",
+        },
+        "pt": {
+            "title": "Servidor MCP não pôde ser conferido ao vivo",
+            "description": "O servidor não iniciou ou não respondeu ao tools/list a tempo, então as descrições reais das ferramentas não foram conferidas nem travadas no lockfile.",
+            "remediation": "Confira o comando, as credenciais e a rede e rode de novo com --live. Servidores que pedem login interativo podem ser travados depois que você entrar.",
         },
     },
 }

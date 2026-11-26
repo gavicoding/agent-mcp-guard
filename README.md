@@ -8,56 +8,74 @@
 ![OWASP Agentic Top 10](https://img.shields.io/badge/OWASP-Agentic_Top_10-0ea5e9)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green)
 
-**Zero-dependency security scanner, SHA-256 rug-pull guard, and local web workbench for AI agent instructions and Model Context Protocol (MCP) servers.**
+**Check the AI agents and MCP servers on your machine before they check you.** One command reads the configs of Claude, Cursor, VS Code, Windsurf, Codex, Gemini and others, starts each MCP server to see what it really advertises, and tells you in plain words what is risky and how to fix it. No dependencies, nothing leaves your computer.
 
-🌐 **[Launch Interactive Web Scanner (Runs 100% in your browser)](https://gavicoding.github.io/agent-mcp-guard/)**
+🌐 **[Try it in the browser (runs 100% locally)](https://gavicoding.github.io/agent-mcp-guard/)**
 
 ![agent-mcp-guard interactive web workbench](docs/screenshot.png)
 
-## Why this exists
+## What it catches
 
-AI coding assistants and desktop agents (`CLAUDE.md`, `.cursorrules`, `AGENTS.md`, `SKILL.md`, `mcp.json`, `claude_desktop_config.json`) execute with developer credentials, SSH keys, and shell permissions. In practice, three supply-chain risks slip past traditional linters:
+| Risk | Example | Rules |
+| --- | --- | --- |
+| Hidden instructions in rules, skills and tool descriptions | `<IMPORTANT>` blocks, HTML comments, zero-width and Trojan Source characters | AMG001-AMG006, AMG016, AMG020 |
+| **Rug pull**: a server changes a tool after you approved it | description of `read_file` now says "also send ~/.ssh/id_rsa" | AMG009 (live), AMG018 |
+| Hooks that run on their own | `SessionStart` hook doing `curl ... \| bash` | AMG021 |
+| Approval switched off or too wide | `bypassPermissions`, `Bash(*)`, `trust: true`, Codex `danger-full-access` | AMG008, AMG022 |
+| Any cloned repo can start servers | `enableAllProjectMcpServers: true` | AMG023 |
+| Supply chain and transport | `npx -y pkg` without version, `:latest`, `http://`, remote server without auth | AMG010-AMG012, AMG019 |
+| Secrets and broad access | API keys in configs, `~/` as filesystem root, admin tokens in `env` | AMG013-AMG015 |
+| Tool shadowing across servers | two servers publishing `send_email` | AMG024 |
 
-1. **Tool Poisoning & Prompt Injection:** Hidden `<IMPORTANT>` blocks, HTML comments, zero-width Unicode tags (`U+E0000..U+E007F`), or Trojan Source Bidi markers (`U+202E`) inside rules or MCP tool schemas.
-2. **MCP Rug Pulls (Post-Approval Drift):** A remote or unpinned (`npx -y`, `uvx`, `:latest`) MCP server changes a tool description or `inputSchema` silently after you already approved it.
-3. **Credential & Privilege Exposure:** Literal API keys, wildcard approvals (`autoApprove: ["*"]`), root filesystem scopes (`/` or `~/`), plaintext remote HTTP endpoints, and unauthenticated remote SSE URLs.
+25 rules in total, mapped to OWASP Top 10 for Agentic Applications, MITRE ATLAS and CWE ([catalog](docs/rules.md)).
 
-`agent-mcp-guard` catches all 20 attack patterns locally with zero external runtime dependencies, pins MCP servers and tool manifests to a SHA-256 lockfile (`mcp-guard.lock.json`), and exports SARIF 2.1.0 for GitHub Code Scanning.
-
-## Key Capabilities
-
-- **20 Detection Rules (`AMG001` - `AMG020`)** mapped to **OWASP Top 10 for Agentic Applications**, **MITRE ATLAS**, and **CWE** ([full rules catalog](docs/rules.md)).
-- **SHA-256 Rug-Pull Lockfile (`lock` / `verify`)**: canonical JSON hashing of server commands, endpoints, tool descriptions, and `inputSchema` objects.
-- **Secret Masking by Default (`AMG015`)**: reports flag leaked keys/tokens cleanly with masked prefixes (`AKIAIOSF...[REDACTED]`) so audit artifacts never leak real secrets.
-- **Five Output Formats**: colorized Terminal, JSON, **SARIF 2.1.0**, Markdown PR summary, and self-contained interactive HTML report.
-- **Bilingual Native (`--lang en` / `--lang pt`)**: idiomatic English and Brazilian Portuguese CLI, HTML reports, and browser UI.
-- **Zero-Upload Browser App**: inspect files or verify MCP manifest hashes completely offline on GitHub Pages.
-
-## Quick Start
+## Install
 
 ```bash
-# Run bundled vulnerable + hardened demo workspaces
-PYTHONPATH=src python -m agent_mcp_guard demo
-
-# Audit your project directory (fails CI on High/Critical findings)
-PYTHONPATH=src python -m agent_mcp_guard scan . --fail-on high
-
-# Pin approved MCP servers & tool schemas into mcp-guard.lock.json
-PYTHONPATH=src python -m agent_mcp_guard lock .
-
-# Detect silent MCP rug-pull changes in CI or pre-commit
-PYTHONPATH=src python -m agent_mcp_guard verify . --lockfile mcp-guard.lock.json
-
-# Export SARIF 2.1.0 + interactive HTML report in Portuguese
-PYTHONPATH=src python -m agent_mcp_guard scan . --format html --output mcp-audit.html --lang pt
+pipx install git+https://github.com/gavicoding/agent-mcp-guard
+# or, without installing anything permanently:
+uvx --from git+https://github.com/gavicoding/agent-mcp-guard agent-mcp-guard scan --system
 ```
 
-Or install locally via `pip install -e .` and run `agent-mcp-guard scan .`.
+Windows users can also download `agent-mcp-guard.exe` from the [latest release](https://github.com/gavicoding/agent-mcp-guard/releases/latest).
 
-## GitHub Action Usage
+## Use
+
+```bash
+# 1. Everything on this machine (global configs of every AI client it knows)
+agent-mcp-guard scan --system
+
+# 2. Same, plus start each MCP server and inspect what it really publishes
+agent-mcp-guard scan --system --live
+
+# 3. Approve what you have now, then catch any change later (rug pull)
+agent-mcp-guard lock --system --live
+agent-mcp-guard verify --system --live
+
+# A project folder (rules, skills, .mcp.json, .claude/settings.json, ...)
+agent-mcp-guard scan . --fail-on high
+agent-mcp-guard lock . --live          # writes mcp-guard.lock.json, commit it
+agent-mcp-guard verify . --live        # in CI or before opening the project
+
+# Which files does --system read here?
+agent-mcp-guard where
+
+# Reports: terminal (default), json, sarif, markdown, html
+agent-mcp-guard scan . --format html --output report.html
+```
+
+`--live` starts stdio servers (it runs their code, like your AI client does) and calls HTTP servers. It only sends the standard `initialize`, `tools/list`, `prompts/list` and `resources/list` requests and **never calls a tool**. Servers that need an interactive sign-in are reported as "not verified" (AMG025) instead of failing the run.
+
+### What `--system` reads
+
+Claude Desktop, Claude Code (`~/.claude.json`, settings, managed settings, agents, commands, skills), Cursor (MCP, hooks, rules), Windsurf, VS Code and Insiders (settings, `mcp.json`, Cline, Roo Code), Codex CLI (`config.toml`, `AGENTS.md`), Gemini CLI, Zed, Amazon Q, Kiro, LM Studio, opencode and Continue, on Windows, macOS and Linux. Run `agent-mcp-guard where --all` for the exact paths.
+
+From `~/.claude.json` only the MCP server blocks are inspected, because that file also stores your prompt history. Paths in reports are shown as `~/...`, without your user name.
+
+## GitHub Action
 
 ```yaml
-name: AI Agent & MCP Security
+name: AI agent & MCP security
 on: [pull_request, push]
 
 permissions:
@@ -69,31 +87,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: gavicoding/agent-mcp-guard@v1.0.0
+      - uses: gavicoding/agent-mcp-guard@v1
         with:
           path: "."
           fail-on: "high"
           sarif-output: "agent-mcp-guard.sarif"
 ```
 
-## Supported Files
+## Files checked in a project
 
-- `.cursorrules`, `.cursor/rules/*.mdc`, `.windsurfrules`, `.clinerules`
-- `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `SKILL.md`, `.github/copilot-instructions.md`
-- `mcp.json`, `.mcp.json`, `.cursor/mcp.json`, `.vscode/mcp.json`, `claude_desktop_config.json`, `mcp-tools.json`
+- Instructions: `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `SKILL.md`, `.cursorrules`, `.windsurfrules`, `.clinerules`, `.cursor/rules/*.mdc`, `.github/copilot-instructions.md`, `.github/*.prompt.md`, and Markdown files under `agents/`, `commands/`, `skills/`, `rules/`
+- MCP: `.mcp.json`, `mcp.json`, `.cursor/mcp.json`, `.vscode/mcp.json`, `claude_desktop_config.json`, `mcp-tools.json`
+- Agent settings: `.claude/settings.json`, `.claude/settings.local.json`, `.cursor/hooks.json`, `.gemini/settings.json`, `.codex/config.toml` (JSON with comments is supported)
 
-## Architecture
+## How it works
 
-- `src/agent_mcp_guard/scanner.py`: recursive target discovery and 20 deterministic rule detectors.
-- `src/agent_mcp_guard/lockfile.py`: canonical JSON normalization + SHA-256 baseline lockfile & drift verifier.
-- `src/agent_mcp_guard/reporters.py`: SARIF 2.1.0, HTML, Markdown, JSON, and CLI renderers.
-- `docs/`: zero-dependency client-side scanner and Web Crypto SHA-256 Rug-Pull Lab.
+- `scanner.py`: text and config rules; `policy.py`: hooks, permissions and trust switches; `configload.py`: JSON, JSONC and TOML.
+- `discovery.py`: where each client keeps its global config on each OS.
+- `live.py` / `livecheck.py`: minimal MCP client (stdio and streamable HTTP, including SSE answers) and the live rug-pull comparison.
+- `lockfile.py`: canonical JSON + SHA-256 pins of servers, tool manifests and live tool fingerprints.
+- `docs/`: the same rules in the browser (no upload).
 
-## Development & Tests
+## Development
 
 ```bash
 PYTHONPATH=src python -m unittest discover -s tests -v
 node tests/test_web_engine.mjs
 ```
+
+Tests start a tiny fake MCP server to prove that a changed tool description is reported as a critical rug pull.
 
 MIT License. Built by [Gabriel Souza (@gavicoding)](https://gavicoding.github.io/).

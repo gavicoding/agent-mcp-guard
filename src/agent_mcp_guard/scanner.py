@@ -1,4 +1,4 @@
-"""Core security scanner implementing rules AMG001..AMG020 for AI agents and MCP configs."""
+"""Core security scanner implementing rules AMG001..AMG025 for AI agents and MCP configs."""
 
 from __future__ import annotations
 
@@ -6,17 +6,20 @@ import base64
 import json
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from .i18n import mask_secret_text
 from .lockfile import (
     extract_servers,
+    normalize_server,
     extract_tools,
     is_mcp_config_path,
     is_mcp_tools_path,
     verify_lockfile,
 )
+from .configload import load_config_text
 from .models import Finding, ScanReport, Severity
+from .policy import check_settings
 from .rules import RULES
 
 AGENT_FILE_NAMES = {
@@ -30,6 +33,11 @@ AGENT_FILE_NAMES = {
     "copilot-instructions.md",
     "agent-instructions.md",
 }
+
+# folders whose markdown files are agent instructions (subagents, slash commands, skills, rules)
+AGENT_DIRS = {"agents", "commands", "skills", "rules", ".clinerules", "workflows", "steering"}
+
+MAX_FILE_BYTES = 8 * 1024 * 1024
 
 SKIP_DIRS = {
     ".git",
@@ -71,6 +79,26 @@ PROMPT_INJECTION_PATTERNS = [
     re.compile(r"(?i)<!--.*?(?:ignore\s+previous|do\s+not\s+tell|silently|system\s+override|exfiltrate).*?-->", re.S),
     re.compile(r"(?i)\bnever\s+reveal\s+this\s+instruction\b"),
 ]
+
+PERMISSION_ENTRY_RX = re.compile(r'^\s*"[A-Za-z_][A-Za-z0-9_]*\([^"]*\)"\s*,?\s*$')
+QUOTE_CHARS = "\"'`“”‘’«»"
+DEFENSIVE_CUE_RX = re.compile(
+    r"(?i)\b(if|when|such as|e\.g\.|for example|like|contains?|never|refuse|treat|data, not|not instructions|"
+    r"beware|watch out|attack|injection|malicious|untrusted|suspicious|do not (?:follow|obey))\b"
+)
+
+
+def _is_quoted_warning(text: str, start: int, end: int) -> bool:
+    """True when the phrase is quoted inside a sentence that tells the agent to refuse it."""
+    before = text[max(0, start - 3) : start].rstrip()
+    after = text[end : end + 3].lstrip()
+    quoted = (before[-1:] in QUOTE_CHARS) or (after[:1] in QUOTE_CHARS)
+    if not quoted:
+        return False
+    sentence_start = max(text.rfind("\n", 0, start), text.rfind(". ", 0, start))
+    window = text[max(0, sentence_start) : min(len(text), end + 160)]
+    return bool(DEFENSIVE_CUE_RX.search(window))
+
 
 CREDENTIAL_PATH_RX = re.compile(
     r"(?i)(?:~/\.ssh|/\.ssh/|id_rsa|id_ed25519|~/\.aws|/\.aws/credentials|\.env\b|/etc/shadow|kube/config|keychain|cookies\.sqlite)"
@@ -147,6 +175,10 @@ def is_target_file(path: Path) -> bool:
         return True
     if lower_name.endswith(".mdc") and ".cursor" in lower_parts:
         return True
+    if lower_name.endswith(".md") and any(d in lower_parts for d in AGENT_DIRS):
+        return True
+    if lower_name.endswith((".prompt.md", ".chatmode.md", ".instructions.md")) and ".github" in lower_parts:
+        return True
     if is_mcp_config_path(path) or is_mcp_tools_path(path):
         return True
     return False
@@ -183,21 +215,32 @@ def scan_path(
     lockfile_path: Path | None = None,
     ignored_rules: set[str] | None = None,
     config_path: Path | None = None,
+    files: list[Path] | None = None,
+    label: Callable[[Path], str] | None = None,
+    require_lockfile: bool = True,
+    extra_findings: list[Finding] | None = None,
 ) -> ScanReport:
-    """Run all static rules and optional lockfile verification against a file or directory."""
+    """Run all static rules and optional lockfile verification against a file or directory.
+
+    ``files``/``label`` let callers (``scan --system``) pass an explicit file list and how to show each path.
+    """
     root = target if target.is_dir() else target.parent
     cfg = load_workspace_config(root, config_path)
     merged_ignores = set(ignored_rules or set())
     for r in cfg.get("ignore_rules", []):
         merged_ignores.add(str(r).upper())
 
-    files = discover_target_files(target)
-    findings: list[Finding] = []
+    if files is None:
+        files = discover_target_files(target)
+    show = label or (lambda p: _rel_path(root, p))
+    findings: list[Finding] = list(extra_findings or [])
     has_mcp_config = False
 
     for file_path in files:
-        rel_path = _rel_path(root, file_path)
+        rel_path = show(file_path)
         try:
+            if file_path.stat().st_size > MAX_FILE_BYTES:
+                continue
             text = file_path.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
@@ -205,7 +248,13 @@ def scan_path(
         if is_mcp_config_path(file_path):
             has_mcp_config = True
 
-        findings.extend(_scan_text_content(rel_path, text))
+        if file_path.name.lower() == ".claude.json":
+            # this file also stores prompt history: only the MCP server blocks are inspected
+            data = load_config_text(file_path, text)
+            servers_only = json.dumps(extract_servers(data), indent=2, ensure_ascii=False) if data else ""
+            findings.extend(_scan_text_content(rel_path, servers_only))
+        else:
+            findings.extend(_scan_text_content(rel_path, text))
 
         if is_mcp_config_path(file_path) or is_mcp_tools_path(file_path):
             findings.extend(_scan_mcp_json(rel_path, file_path, text))
@@ -219,8 +268,8 @@ def scan_path(
     lockfile_checked = False
     if effective_lockfile is not None and effective_lockfile.is_file():
         lockfile_checked = True
-        findings.extend(verify_lockfile(effective_lockfile, root, files))
-    elif has_mcp_config:
+        findings.extend(verify_lockfile(effective_lockfile, root, files, show))
+    elif has_mcp_config and require_lockfile:
         findings.append(
             Finding(
                 rule_id="AMG018",
@@ -235,12 +284,22 @@ def scan_path(
     filtered = [f for f in findings if f.rule_id not in merged_ignores]
     return ScanReport(
         target=str(target),
-        scanned_files=[_rel_path(root, f) for f in files],
+        scanned_files=[show(f) for f in files],
         findings=_dedupe_findings(filtered),
         lockfile_path=str(effective_lockfile) if lockfile_checked and effective_lockfile else None,
         lockfile_checked=lockfile_checked,
         ignored_rules=sorted(merged_ignores),
     )
+
+
+def scan_text(where: str, text: str) -> list[Finding]:
+    """Public wrapper: run the instruction/text rules on arbitrary text (used for live tool descriptions)."""
+    return _scan_text_content(where, text)
+
+
+def scan_manifest_text(where: str, text: str) -> list[Finding]:
+    """Public wrapper: run the tool-manifest rules on a JSON {"tools": [...]} document."""
+    return _scan_mcp_json(where, Path("mcp-tools.json"), text)
 
 
 def _scan_text_content(rel_path: str, text: str) -> list[Finding]:
@@ -283,23 +342,28 @@ def _scan_text_content(rel_path: str, text: str) -> list[Finding]:
     for rx in PROMPT_INJECTION_PATTERNS:
         for match in rx.finditer(text):
             line_no, col_no = _offset_to_line_col(text, match.start())
+            quoted = _is_quoted_warning(text, match.start(), match.end())
             findings.append(
                 Finding(
                     rule_id="AMG004",
-                    severity=RULES["AMG004"].severity,
+                    severity=Severity.LOW if quoted else RULES["AMG004"].severity,
                     file_path=rel_path,
                     line=line_no,
                     column=col_no,
-                    evidence=_clip_snippet(match.group(0)),
+                    evidence=("Quoted as an example to refuse: " if quoted else "") + _clip_snippet(match.group(0)),
                 )
             )
 
     # AMG005: Credential paths paired with exfiltration verbs within line or nearby block
     for line_no, line in enumerate(lines, start=1):
         if CREDENTIAL_PATH_RX.search(line):
-            window_start = max(0, line_no - 2)
-            window_end = min(len(lines), line_no + 2)
-            neighborhood = "\n".join(lines[window_start:window_end])
+            if PERMISSION_ENTRY_RX.match(line):
+                # one permission rule per line: neighbours are unrelated rules
+                neighborhood = line
+            else:
+                window_start = max(0, line_no - 2)
+                window_end = min(len(lines), line_no + 2)
+                neighborhood = "\n".join(lines[window_start:window_end])
             if EXFIL_ACTION_RX.search(neighborhood):
                 findings.append(
                     Finding(
@@ -411,13 +475,15 @@ def _scan_text_content(rel_path: str, text: str) -> list[Finding]:
 
 def _scan_mcp_json(rel_path: str, file_path: Path, text: str) -> list[Finding]:
     findings: list[Finding] = []
-    try:
-        data = json.loads(text)
-    except json.JSONDecodeError:
+    data = load_config_text(file_path, text)
+    if data is None:
         return findings
 
+    findings.extend(check_settings(rel_path, file_path, text, data))
+
     if is_mcp_config_path(file_path):
-        for srv_name, cfg in extract_servers(data).items():
+        for srv_name, raw_cfg in extract_servers(data).items():
+            cfg = normalize_server(raw_cfg)
             srv_line = _find_key_line(text, srv_name)
             command = str(cfg.get("command") or "")
             args = [str(a) for a in cfg.get("args", [])] if isinstance(cfg.get("args"), list) else []

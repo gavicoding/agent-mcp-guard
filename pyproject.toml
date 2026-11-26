@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agent-mcp-guard"
-version = "1.0.0"
+version = "1.1.0"
 description = "Zero-dependency security scanner and SHA-256 rug-pull guard for AI agent configs and MCP servers."
 readme = "README.md"
 license = {text = "MIT"}
