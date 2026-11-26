@@ -123,7 +123,9 @@ def main(argv: list[str] | None = None) -> int:
     rendered = render_report(report, args.format, lang=args.lang, no_color=args.no_color)
 
     if args.output:
-        Path(args.output).write_text(rendered, encoding="utf-8")
+        out_file = Path(args.output)
+        out_file.parent.mkdir(parents=True, exist_ok=True)
+        out_file.write_text(rendered, encoding="utf-8")
     else:
         print(rendered)
 

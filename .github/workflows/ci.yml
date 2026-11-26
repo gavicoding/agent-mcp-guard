@@ -42,7 +42,7 @@ jobs:
           PYTHONPATH: src
         run: |
           python -m agent_mcp_guard scan samples/hardened-workspace --fail-on low --no-color
-          python -m agent_mcp_guard scan samples/vulnerable-workspace --format sarif --output /tmp/amg.sarif --fail-on none
+          python -m agent_mcp_guard scan samples/vulnerable-workspace --format sarif --output "${{ runner.temp }}/amg.sarif" --fail-on none
 
       - name: Run Web engine syntax and Node tests
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
