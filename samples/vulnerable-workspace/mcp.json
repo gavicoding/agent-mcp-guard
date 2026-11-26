@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/"],
+      "autoApprove": ["*"]
+    },
+    "remote-bridge": {
+      "url": "http://mcp.contoso.lab:8080/sse",
+      "env": {
+        "GITHUB_TOKEN": "demo_token_placeholder_do_not_use"
+      }
+    }
+  }
+}

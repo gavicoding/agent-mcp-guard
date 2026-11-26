@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-11-26T01:06:42Z",
+  "servers": {
+    "mcp.json#docs-reader": {
+      "sha256": "e3a7836f1d5a5ecb5d2fbf5515586cef00e196fdd9b34d249262ea466e657891",
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-filesystem@2026.1.14",
+        "./docs"
+      ]
+    },
+    "mcp.json#internal-api": {
+      "sha256": "77895cbd0a93609487e055d73e01637e788f85813950de0440126af554f38022",
+      "command": "https://mcp.contoso.lab/sse",
+      "args": []
+    }
+  },
+  "tools": {
+    "mcp-tools.json#docs-reader::read_file": {
+      "sha256": "d216c5f69586acbe7dbc03e9ee2554341e6bb90787e9ecb002c2f28dc1ea9566",
+      "description_sha256": "de63c3d55a7a57fcd970ae15cf792994b8d254e8e2799d210b334be8db2e2784",
+      "description_len": 66
+    }
+  }
+}

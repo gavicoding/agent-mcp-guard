@@ -1,0 +1,84 @@
+name: "agent-mcp-guard Security Scan"
+description: "Zero-dependency audit of AI agent configs and MCP servers with SARIF upload support and SHA-256 rug-pull verification."
+author: "Gabriel Souza (@gavicoding)"
+
+branding:
+  icon: "shield"
+  color: "blue"
+
+inputs:
+  path:
+    description: "Workspace path to audit"
+    required: false
+    default: "."
+  fail-on:
+    description: "Minimum severity to fail workflow: none, low, medium, high, critical"
+    required: false
+    default: "high"
+  lockfile:
+    description: "Optional path to mcp-guard.lock.json"
+    required: false
+    default: ""
+  lang:
+    description: "Report language (en or pt)"
+    required: false
+    default: "en"
+  sarif-output:
+    description: "Optional output path for SARIF 2.1.0 report"
+    required: false
+    default: "agent-mcp-guard.sarif"
+  html-output:
+    description: "Optional output path for self-contained HTML report"
+    required: false
+    default: ""
+
+outputs:
+  exit-code:
+    description: "CLI exit code (0 = pass, 1 = policy violation)"
+    value: ${{ steps.run-scan.outputs.exit_code }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Run agent-mcp-guard
+      id: run-scan
+      shell: bash
+      run: |
+        set +e
+        export PYTHONPATH="${GITHUB_ACTION_PATH}/src"
+        LOCK_ARG=""
+        if [ -n "${{ inputs.lockfile }}" ]; then
+          LOCK_ARG="--lockfile ${{ inputs.lockfile }}"
+        fi
+        python3 -m agent_mcp_guard scan "${{ inputs.path }}" \
+          --lang "${{ inputs.lang }}" \
+          --fail-on none \
+          --format sarif \
+          --output "${{ inputs.sarif-output }}" \
+          $LOCK_ARG
+
+        if [ -n "${{ inputs.html-output }}" ]; then
+          python3 -m agent_mcp_guard scan "${{ inputs.path }}" \
+            --lang "${{ inputs.lang }}" \
+            --fail-on none \
+            --format html \
+            --output "${{ inputs.html-output }}" \
+            $LOCK_ARG
+        fi
+
+        if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+          python3 -m agent_mcp_guard scan "${{ inputs.path }}" \
+            --lang "${{ inputs.lang }}" \
+            --fail-on none \
+            --format markdown \
+            $LOCK_ARG >> "${GITHUB_STEP_SUMMARY}"
+        fi
+
+        python3 -m agent_mcp_guard scan "${{ inputs.path }}" \
+          --lang "${{ inputs.lang }}" \
+          --fail-on "${{ inputs.fail-on }}" \
+          --no-color \
+          $LOCK_ARG
+        CODE=$?
+        echo "exit_code=${CODE}" >> "${GITHUB_OUTPUT}"
+        exit "${CODE}"

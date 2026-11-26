@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test-python-and-web:
+    name: ${{ matrix.os }} / Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - uses: actions/setup-node@v4
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        with:
+          node-version: "22"
+
+      - name: Compile Python modules
+        run: python -m compileall -q src tests
+
+      - name: Run Python unit and quality-gate tests
+        env:
+          PYTHONPATH: src
+        run: python -m unittest discover -s tests -v
+
+      - name: Smoke test CLI against hardened and vulnerable workspaces
+        env:
+          PYTHONPATH: src
+        run: |
+          python -m agent_mcp_guard scan samples/hardened-workspace --fail-on low --no-color
+          python -m agent_mcp_guard scan samples/vulnerable-workspace --format sarif --output /tmp/amg.sarif --fail-on none
+
+      - name: Run Web engine syntax and Node tests
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        run: |
+          node --check docs/app.js
+          node tests/test_web_engine.mjs

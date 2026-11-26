@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>agent-mcp-guard | AI Agent & MCP Security Scanner</title>
+  <meta name="description" content="100% local browser scanner and SHA-256 rug-pull guard for MCP servers, CLAUDE.md, .cursorrules, SKILL.md, and agent tool manifests." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo-mark" aria-hidden="true">AMG</div>
+        <div>
+          <h1>agent-mcp-guard <span class="ver">v1.0.0</span></h1>
+          <p class="subtitle" data-i18n="hero_sub">Zero-dependency scanner & SHA-256 rug-pull guard for MCP configs and AI agent instructions. Runs 100% locally in your browser.</p>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button id="lang-toggle" class="btn btn-ghost" type="button">PT-BR</button>
+        <button id="theme-toggle" class="btn btn-ghost" type="button" data-i18n="btn_theme">Light</button>
+        <a class="btn btn-outline" href="https://github.com/gavicoding/agent-mcp-guard" target="_blank" rel="noopener noreferrer">GitHub</a>
+      </div>
+    </header>
+
+    <div class="trust-pill" data-i18n="privacy_banner">Zero upload: all parsing, secret masking, and SHA-256 hashing executes strictly inside your browser tab.</div>
+
+    <nav class="tabs" role="tablist">
+      <button id="tab-scanner" class="tab active" type="button" role="tab" aria-selected="true" data-i18n="tab_scanner">Config & Prompt Scanner</button>
+      <button id="tab-rugpull" class="tab" type="button" role="tab" aria-selected="false" data-i18n="tab_rugpull">MCP Rug-Pull SHA-256 Lab</button>
+      <button id="tab-catalog" class="tab" type="button" role="tab" aria-selected="false" data-i18n="tab_catalog">20 Rules (OWASP Agentic)</button>
+    </nav>
+
+    <main id="panel-scanner" class="panel active">
+      <section class="presets-bar">
+        <span class="label-inline" data-i18n="presets_label">Load scenario:</span>
+        <button class="btn btn-chip" type="button" data-preset="poisoning" data-i18n="preset_poisoning">MCP Tool Poisoning</button>
+        <button class="btn btn-chip" type="button" data-preset="unicode" data-i18n="preset_unicode">Hidden Unicode & Trojan Source</button>
+        <button class="btn btn-chip" type="button" data-preset="secrets" data-i18n="preset_secrets">Exposed Secrets & Unpinned npx</button>
+        <button class="btn btn-chip btn-ok" type="button" data-preset="hardened" data-i18n="preset_hardened">Hardened Clean Baseline</button>
+      </section>
+
+      <section class="workspace-grid">
+        <div class="card input-card">
+          <div class="card-head">
+            <h2 data-i18n="input_heading">Agent Config or Prompt File</h2>
+            <div class="file-controls">
+              <select id="file-kind" aria-label="File name">
+                <option value=".cursorrules">.cursorrules</option>
+                <option value="CLAUDE.md">CLAUDE.md</option>
+                <option value="SKILL.md">SKILL.md</option>
+                <option value="mcp.json">mcp.json</option>
+                <option value="mcp-tools.json">mcp-tools.json</option>
+              </select>
+              <label class="btn btn-ghost file-btn">
+                <span data-i18n="btn_upload">Load File</span>
+                <input id="file-input" type="file" accept=".md,.json,.txt,.mdc,.cursorrules,.windsurfrules" hidden />
+              </label>
+            </div>
+          </div>
+          <textarea id="editor" spellcheck="false" aria-label="Configuration content"></textarea>
+          <div class="editor-actions">
+            <button id="btn-scan" class="btn btn-primary" type="button" data-i18n="btn_scan">Audit Now</button>
+            <button id="btn-clear" class="btn btn-ghost" type="button" data-i18n="btn_clear">Clear</button>
+            <div class="export-group">
+              <button id="btn-export-sarif" class="btn btn-outline" type="button">SARIF 2.1.0</button>
+              <button id="btn-export-json" class="btn btn-outline" type="button">JSON</button>
+              <button id="btn-export-html" class="btn btn-outline" type="button">HTML</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card summary-card">
+          <div class="card-head">
+            <h2 data-i18n="risk_overview">Risk Overview</h2>
+            <span id="status-badge" class="status-pill status-clean">0/100</span>
+          </div>
+          <div class="kpi-row">
+            <div class="kpi-box"><span class="kpi-num" id="kpi-score">0</span><span class="kpi-lbl" data-i18n="kpi_score">Risk Score</span></div>
+            <div class="kpi-box"><span class="kpi-num c-crit" id="kpi-crit">0</span><span class="kpi-lbl" data-i18n="sev_critical">Critical</span></div>
+            <div class="kpi-box"><span class="kpi-num c-high" id="kpi-high">0</span><span class="kpi-lbl" data-i18n="sev_high">High</span></div>
+            <div class="kpi-box"><span class="kpi-num c-med" id="kpi-med">0</span><span class="kpi-lbl" data-i18n="sev_medium">Medium</span></div>
+            <div class="kpi-box"><span class="kpi-num c-low" id="kpi-low">0</span><span class="kpi-lbl" data-i18n="sev_low">Low</span></div>
+          </div>
+          <div class="filter-bar">
+            <button class="btn btn-chip active" type="button" data-filter="all" data-i18n="filter_all">All</button>
+            <button class="btn btn-chip" type="button" data-filter="critical" data-i18n="sev_critical">Critical</button>
+            <button class="btn btn-chip" type="button" data-filter="high" data-i18n="sev_high">High</button>
+            <button class="btn btn-chip" type="button" data-filter="medium" data-i18n="sev_medium">Medium</button>
+            <button class="btn btn-chip" type="button" data-filter="low" data-i18n="sev_low">Low</button>
+          </div>
+          <div id="findings-list" class="findings-list"></div>
+        </div>
+      </section>
+    </main>
+
+    <section id="panel-rugpull" class="panel" hidden>
+      <div class="card">
+        <div class="card-head">
+          <h2 data-i18n="rugpull_heading">MCP Tool Manifest SHA-256 Lock & Rug-Pull Detector</h2>
+          <button id="btn-simulate-rugpull" class="btn btn-primary" type="button" data-i18n="btn_compare">Verify SHA-256 Integrity</button>
+        </div>
+        <p class="muted" data-i18n="rugpull_desc">Pin an approved MCP server/tool manifest on the left, then compare against the live manifest on the right to detect silent schema or description mutations (AMG009).</p>
+        <div class="diff-grid">
+          <div>
+            <label class="field-label" data-i18n="baseline_label">Approved Lockfile Baseline (JSON)</label>
+            <textarea id="lock-baseline" class="code-area" spellcheck="false"></textarea>
+            <div class="hash-line">SHA-256: <code id="hash-baseline">-</code></div>
+          </div>
+          <div>
+            <label class="field-label" data-i18n="live_label">Current Live MCP Manifest (JSON)</label>
+            <textarea id="lock-live" class="code-area" spellcheck="false"></textarea>
+            <div class="hash-line">SHA-256: <code id="hash-live">-</code></div>
+          </div>
+        </div>
+        <div id="rugpull-result" class="rugpull-banner"></div>
+      </div>
+    </section>
+
+    <section id="panel-catalog" class="panel" hidden>
+      <div class="card">
+        <div class="card-head">
+          <h2 data-i18n="catalog_heading">Detection Rule Catalog (AMG001 - AMG020)</h2>
+        </div>
+        <div class="table-wrap">
+          <table class="rules-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th data-i18n="col_sev">Severity</th>
+                <th data-i18n="col_title">Rule</th>
+                <th>OWASP Agentic / ATLAS / CWE</th>
+              </tr>
+            </thead>
+            <tbody id="rules-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <span>Built by <a href="https://gavicoding.github.io/" target="_blank" rel="noopener noreferrer">Gabriel Souza (@gavicoding)</a></span>
+      <span>MIT License | CLI + GitHub Action + SARIF 2.1.0</span>
+    </footer>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
