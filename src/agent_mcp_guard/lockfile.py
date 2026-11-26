@@ -6,8 +6,9 @@ import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
+from .configload import load_config_text
 from .models import Finding, Severity
 
 MCP_CONFIG_NAMES = {
@@ -15,7 +16,13 @@ MCP_CONFIG_NAMES = {
     ".mcp.json",
     "claude_desktop_config.json",
     "mcp_config.json",
+    ".claude.json",
+    "cline_mcp_settings.json",
+    "mcp_settings.json",
+    "managed-mcp.json",
+    "opencode.json",
 }
+SETTINGS_PARENTS = (".claude", ".gemini", ".vscode", ".cursor", "user", "zed", "claudecode")
 MCP_TOOLS_NAMES = {
     "mcp-tools.json",
     "tools-manifest.json",
@@ -37,8 +44,14 @@ def is_mcp_config_path(path: Path) -> bool:
     name = path.name.lower()
     if name in MCP_CONFIG_NAMES:
         return True
-    parts = [p.lower() for p in path.parts]
-    if name == "settings.json" and any(p in parts for p in (".claude", ".gemini", ".vscode")):
+    parent = path.parent.name.lower()
+    if name in ("settings.json", "settings.local.json", "managed-settings.json") and parent in SETTINGS_PARENTS:
+        return True
+    if name == "hooks.json" and parent == ".cursor":
+        return True
+    if name == "config.toml" and parent == ".codex":
+        return True
+    if name == "config.json" and parent == ".continue":
         return True
     return False
 
@@ -49,17 +62,67 @@ def is_mcp_tools_path(path: Path) -> bool:
 
 
 def extract_servers(data: Any) -> dict[str, Any]:
-    """Extract normalized MCP server blocks from standard config schemas."""
+    """Extract MCP server blocks from every config schema we know.
+
+    mcpServers (Claude/Cursor/Windsurf/Gemini/Cline), servers (VS Code mcp.json),
+    mcp.servers (VS Code settings.json), context_servers (Zed), mcp_servers (Codex TOML),
+    mcp (opencode), projects[*].mcpServers (~/.claude.json) and Continue's list form.
+    """
     if not isinstance(data, dict):
         return {}
     servers: dict[str, Any] = {}
-    for key in ("mcpServers", "servers"):
-        block = data.get(key)
+
+    def take(block: Any, prefix: str = "") -> None:
         if isinstance(block, dict):
             for srv_name, srv_cfg in block.items():
                 if isinstance(srv_cfg, dict):
-                    servers[str(srv_name)] = srv_cfg
+                    servers[f"{prefix}{srv_name}"] = srv_cfg
+
+    for key in ("mcpServers", "servers", "context_servers", "mcp_servers"):
+        take(data.get(key))
+    mcp = data.get("mcp")
+    if isinstance(mcp, dict):
+        if isinstance(mcp.get("servers"), dict):
+            take(mcp["servers"])
+        else:
+            take({k: v for k, v in mcp.items() if isinstance(v, dict) and any(x in v for x in ("command", "url", "type"))})
+    projects = data.get("projects")
+    if isinstance(projects, dict):
+        for proj_path, proj_cfg in projects.items():
+            if isinstance(proj_cfg, dict):
+                label = Path(str(proj_path).replace("\\", "/")).name or "project"
+                take(proj_cfg.get("mcpServers"), prefix=f"[{label}] ")
+    exp = data.get("experimental")
+    if isinstance(exp, dict) and isinstance(exp.get("modelContextProtocolServers"), list):
+        for idx, item in enumerate(exp["modelContextProtocolServers"]):
+            if isinstance(item, dict):
+                transport = item.get("transport") if isinstance(item.get("transport"), dict) else item
+                servers[str(item.get("name") or f"continue_{idx}")] = transport
     return servers
+
+
+def normalize_server(cfg: dict[str, Any]) -> dict[str, Any]:
+    """Same shape for every client: command (str), args (list[str]), env, url, headers."""
+    out = dict(cfg)
+    command = cfg.get("command")
+    if isinstance(command, dict):  # Zed: {"command": {"path": ..., "args": [...], "env": {...}}}
+        out["command"] = str(command.get("path") or "")
+        out["args"] = list(command.get("args") or [])
+        if isinstance(command.get("env"), dict):
+            out["env"] = command["env"]
+    elif isinstance(command, list):  # opencode: ["npx", "-y", "pkg"]
+        out["command"] = str(command[0]) if command else ""
+        out["args"] = [str(a) for a in command[1:]] + [str(a) for a in (cfg.get("args") or [])]
+    if not isinstance(out.get("args"), list):
+        out["args"] = []
+    for k in ("env", "environment"):
+        if isinstance(cfg.get(k), dict):
+            out["env"] = cfg[k]
+    if not isinstance(out.get("headers"), dict):
+        out["headers"] = cfg.get("http_headers") if isinstance(cfg.get("http_headers"), dict) else {}
+    if not out.get("url") and isinstance(cfg.get("serverUrl"), str):  # Windsurf
+        out["url"] = cfg["serverUrl"]
+    return out
 
 
 def extract_tools(data: Any) -> dict[str, dict[str, Any]]:
@@ -82,7 +145,7 @@ def extract_tools(data: Any) -> dict[str, dict[str, Any]]:
     return tools
 
 
-def build_lock_entries(root: Path, files: list[Path]) -> dict[str, Any]:
+def build_lock_entries(root: Path, files: list[Path], label: Callable[[Path], str] | None = None) -> dict[str, Any]:
     """Build SHA-256 lock entries for all discovered MCP configs and tool manifests."""
     entries: dict[str, Any] = {
         "schema_version": 1,
@@ -93,18 +156,21 @@ def build_lock_entries(root: Path, files: list[Path]) -> dict[str, Any]:
     for file_path in sorted(files):
         try:
             raw = file_path.read_text(encoding="utf-8")
-            data = json.loads(raw)
         except Exception:
             continue
+        data = load_config_text(file_path, raw)
+        if data is None:
+            continue
 
-        rel = _rel_path(root, file_path)
+        rel = label(file_path) if label else _rel_path(root, file_path)
         if is_mcp_config_path(file_path):
             for srv_name, srv_cfg in extract_servers(data).items():
                 key = f"{rel}#{srv_name}"
+                norm = normalize_server(srv_cfg)
                 entries["servers"][key] = {
                     "sha256": sha256_obj(srv_cfg),
-                    "command": srv_cfg.get("command") or srv_cfg.get("url") or "",
-                    "args": srv_cfg.get("args", []),
+                    "command": norm.get("command") or norm.get("url") or "",
+                    "args": norm.get("args", []),
                 }
         if is_mcp_tools_path(file_path):
             for tool_name, tool_schema in extract_tools(data).items():
@@ -119,14 +185,26 @@ def build_lock_entries(root: Path, files: list[Path]) -> dict[str, Any]:
     return entries
 
 
-def write_lockfile(lockfile_path: Path, root: Path, files: list[Path]) -> dict[str, Any]:
-    """Generate and persist mcp-guard.lock.json."""
-    payload = build_lock_entries(root, files)
+def write_lockfile(
+    lockfile_path: Path,
+    root: Path,
+    files: list[Path],
+    label: Callable[[Path], str] | None = None,
+    live: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Generate and persist mcp-guard.lock.json (optionally with live tool fingerprints)."""
+    payload = build_lock_entries(root, files, label)
+    if live is not None:
+        payload["schema_version"] = 2
+        payload["live"] = live
+    lockfile_path.parent.mkdir(parents=True, exist_ok=True)
     lockfile_path.write_text(json.dumps(payload, indent=2, sort_keys=False) + "\n", encoding="utf-8")
     return payload
 
 
-def verify_lockfile(lockfile_path: Path, root: Path, files: list[Path]) -> list[Finding]:
+def verify_lockfile(
+    lockfile_path: Path, root: Path, files: list[Path], label: Callable[[Path], str] | None = None
+) -> list[Finding]:
     """Compare current MCP configs and tool schemas against the committed lockfile."""
     findings: list[Finding] = []
     try:
@@ -144,7 +222,7 @@ def verify_lockfile(lockfile_path: Path, root: Path, files: list[Path]) -> list[
         )
         return findings
 
-    current = build_lock_entries(root, files)
+    current = build_lock_entries(root, files, label)
 
     expected_servers = expected.get("servers", {})
     for key, cur_info in current.get("servers", {}).items():

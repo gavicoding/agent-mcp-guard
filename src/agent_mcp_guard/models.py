@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
+from . import __version__
+
 
 class Severity(str, Enum):
     """Normalized finding severity levels ordered from highest to lowest risk."""
@@ -93,7 +95,7 @@ class ScanReport:
     lockfile_path: str | None = None
     lockfile_checked: bool = False
     ignored_rules: list[str] = field(default_factory=list)
-    version: str = "1.0.0"
+    version: str = __version__
 
     def sorted_findings(self) -> list[Finding]:
         return sorted(self.findings, key=lambda f: f.sort_key())
