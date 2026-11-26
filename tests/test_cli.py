@@ -1,6 +1,7 @@
 """CLI exit code and subcommand integration tests."""
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -35,7 +36,7 @@ class TestCLI(unittest.TestCase):
         proc = subprocess.run(
             [sys.executable, "-m", "agent_mcp_guard", "demo", "--lang", "pt", "--no-color"],
             cwd=str(ROOT),
-            env={"PYTHONPATH": str(ROOT / "src")},
+            env={**os.environ, "PYTHONPATH": str(ROOT / "src")},
             capture_output=True,
             text=True,
         )
